@@ -27,11 +27,11 @@ EXECUTE FUNCTION adicionar_berco_id();
 
 CREATE TABLE empregado (
 	id_empregado SERIAL PRIMARY KEY,
-	nome CHAR(255),
-	nacionalidade CHAR(50),
+	nome VARCHAR(255),
+	nacionalidade VARCHAR(50),
 	telefone INTEGER,
 	genero genero_enum,
-	email CHAR(100),
+	email VARCHAR(30),
 	data_nasc DATE,
 	CPF CHAR(11),
 	funcao funcao_empregado_enum
@@ -49,11 +49,11 @@ CREATE TABLE tripulante (
 
 CREATE TABLE recursos_portuarios (
 	id_recursos SERIAL PRIMARY KEY,
-	nome CHAR(255),
+	nome VARCHAR(255),
 	tipo tipo_recursos_portuarios_enum,
 	estado estado_recursos_enum,
 	id_movimentacao INTEGER,
-	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao
+	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao)
 )
 
 CREATE TABLE empresa (
@@ -74,12 +74,12 @@ CREATE TABLE alocado_movimentacao_empregado (
 	id_movimentacao INTEGER,
 	id_empregado INTEGER,
 	PRIMARY KEY (id_movimentacao, id_empregado),
-	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao,
-	FOREIGN KEY (id_empregado) REFERENCES empregado
+	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao),
+	FOREIGN KEY (id_empregado) REFERENCES empregado (id_empregado)
 )
 
 CREATE TABLE berco_de_atracacao (
-	id_berco SERIAL PRIMARY KEY,
+	id_berco CHAR(2) PRIMARY KEY,
 	estado_berco estado_berco_enum
 )
 
@@ -87,14 +87,12 @@ CREATE TABLE bill_of_landing (
 	id_bill SERIAL PRIMARY KEY,
 	emb_liberada BOOL,
 	quando TIMESTAMP,
-	berco_id INTEGER,
+	berco_id CHAR(2),
 	FOREIGN KEY (berco_id) REFERENCES berco_de_atracacao(id_berco)
 )
 
-DELETE
-FROM berco_de_atracacao B
-WHERE id_berco < 5
-
 SELECT * FROM bill_of_landing
 
+INSERT INTO berco_de_atracacao (id_berco, estado_berco)
+VALUES ('A2', 'ocupado')
 

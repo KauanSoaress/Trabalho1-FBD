@@ -25,49 +25,78 @@ AFTER INSERT ON berco_de_atracacao
 FOR EACH ROW
 EXECUTE FUNCTION adicionar_berco_id();
 
+-- Crie um gatilho que atualize o id_comandante na tabela embarcacao quando um tripulante com a função "comando" for adicionado
+CREATE OR REPLACE FUNCTION atualizar_id_comandante()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Verifique se o tripulante recém-inserido possui a função "comando"
+    IF NEW.funcao = 'comando' THEN
+        -- Atualize o id_comandante na tabela embarcacao com o id_tripulante do tripulante recém-inserido
+        UPDATE embarcacao
+        SET id_comandante = NEW.id_tripulante
+        WHERE id_embarcacao = NEW.id_embarcacao;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER atualizar_id_comandante_trigger
+AFTER INSERT ON tripulante
+FOR EACH ROW
+EXECUTE FUNCTION atualizar_id_comandante();
+
+CREATE TABLE embarcacao (
+	id_embarcacao SERIAL PRIMARY KEY,
+	id_empresa CHAR(50) NOT NULL, -- não conheço as especificações do ID de empresa
+	id_comandante INTEGER NOT NULL,
+	id_companhia CHAR(50), -- não conheço as especificações do ID de companhia
+	num_IMO CHAR(11) UNIQUE NOT NULL, -- o número imo é descrito nas embarcações da seguinte maneira "IMO numero_de_sete_digitos"
+	info_carga tipo_carga_enum,
+	nome VARCHAR(255) NOT NULL,
+	tipo tipo_embarcacao_enum NOT NULL,
+	estado_embarcacao estado_embaRcacao_enum NOT NULL,
+	bandeira VARCHAR(50) NOT NULL,
+	localização VARCHAR(25) NOT NULL
+)
+
 CREATE TABLE empregado (
 	id_empregado SERIAL PRIMARY KEY,
-	nome VARCHAR(255),
-	nacionalidade VARCHAR(50),
-	telefone INTEGER,
-	genero genero_enum,
-	email VARCHAR(30),
-	data_nasc DATE,
-	CPF CHAR(11),
-	funcao funcao_empregado_enum
+	nome VARCHAR(255) NOT NULL,
+	nacionalidade VARCHAR(50) NOT NULL,
+	telefone INTEGER UNIQUE NOT NULL,
+	genero genero_enum NOT NULL,
+	email VARCHAR(30) UNIQUE NOT NULL,
+	data_nasc DATE NOT NULL,
+	CPF CHAR(11) UNIQUE NOT NULL,
+	funcao funcao_empregado_enum NOT NULL
 )
 
 CREATE TABLE tripulante (
 	id_tripulante SERIAL PRIMARY KEY,
-	nome CHAR(255),
-	nacionalidade CHAR(50),
-	genero genero_enum,
-	idade INTEGER,
-	CPF CHAR(11),
-	funcao funcao_tripulante_enum
+	nome VARCHAR(255) NOT NULL,
+	nacionalidade VARCHAR(50) NOT NULL,
+	genero genero_enum NOT NULL,
+	idade INTEGER NOT NULL,
+	CPF CHAR(11) UNIQUE NOT NULL,
+	funcao funcao_tripulante_enum NOT NULL
+	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao)
+	ON DELETE CASCADE
 )
 
 CREATE TABLE recursos_portuarios (
 	id_recursos SERIAL PRIMARY KEY,
-	nome VARCHAR(255),
-	tipo tipo_recursos_portuarios_enum,
-	estado estado_recursos_enum,
-	id_movimentacao INTEGER,
+	nome VARCHAR(255) NOT NULL,
+	tipo tipo_recursos_portuarios_enum NOT NULL,
+	estado estado_recursos_enum NOT NULL,
+	id_movimentacao INTEGER NOT NULL,
 	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao)
-)
-
-CREATE TABLE empresa (
-	id_empresa SERIAL PRIMARY KEY,
-	nome CHAR(255),
-	cnpj CHAR(14),
-	endereco CHAR(100)
 )
 
 CREATE TABLE movimentacao (
 	id_movimentacao SERIAL PRIMARY KEY,
-	cod_equipe INTEGER,
-	tipo tipo_movimentacao_enum,
-	data_movimentacao DATE
+	cod_equipe INTEGER NOT NULL,
+	tipo tipo_movimentacao_enum NOT NULL,
+	data_movimentacao DATE NOT NULL
 )
 
 CREATE TABLE alocado_movimentacao_empregado (
@@ -80,19 +109,15 @@ CREATE TABLE alocado_movimentacao_empregado (
 
 CREATE TABLE berco_de_atracacao (
 	id_berco CHAR(2) PRIMARY KEY,
-	estado_berco estado_berco_enum
+	estado_berco estado_berco_enum NOT NULL
 )
 
 CREATE TABLE bill_of_landing (
 	id_bill SERIAL PRIMARY KEY,
-	emb_liberada BOOL,
-	quando TIMESTAMP,
-	berco_id CHAR(2),
+	emb_liberada VARCHAR(50) NOT NULL,
+	quando TIMESTAMP NOT NULL,
+	berco_id CHAR(2) NOT NULL,
 	FOREIGN KEY (berco_id) REFERENCES berco_de_atracacao(id_berco)
+	ON DELETE CASCADE
 )
-
-SELECT * FROM bill_of_landing
-
-INSERT INTO berco_de_atracacao (id_berco, estado_berco)
-VALUES ('A2', 'ocupado')
 

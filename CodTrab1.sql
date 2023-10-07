@@ -6,57 +6,45 @@ CREATE TYPE tipo_recursos_portuarios_enum AS ENUM ('conteiner comum', 'conteiner
 CREATE TYPE estado_recursos_enum AS ENUM ('em uso', 'em manutencao', 'nao disponivel', 'livre');
 CREATE TYPE funcao_empregado_enum AS ENUM ('diretor', 'seguranca', 'operador de guindaste', 'operador de carga', 'estivador', 'conferente de carga', 'controlador de trafego', 'pratico', 'oficial de alfandega', 'agente de atendimento', 'RH', 'manutencao', 'outros');
 CREATE TYPE tipo_movimentacao_enum AS ENUM ('carga', 'descarga', 'manutencao', 'estocagem', 'abastecimento de combustivel', 'transferencia de carga', 'outro');
-
-CREATE OR REPLACE FUNCTION adicionar_berco_id()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Verifique se o estado do berço é "ocupado"
-    IF NEW.estado_berco = 'ocupado'::estado_berco_enum THEN
-        -- Insira uma nova B/L com o estado "emb_liberada" definido como TRUE e data/hora atual
-        INSERT INTO bill_of_landing (emb_liberada, quando, berco_id)
-        VALUES (TRUE, CURRENT_TIMESTAMP, NEW.id_berco);
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER adicionar_berco_trigger
-AFTER INSERT ON berco_de_atracacao
-FOR EACH ROW
-EXECUTE FUNCTION adicionar_berco_id();
-
--- Crie um gatilho que atualize o id_comandante na tabela embarcacao quando um tripulante com a função "comando" for adicionado
-CREATE OR REPLACE FUNCTION atualizar_id_comandante()
-RETURNS TRIGGER AS $$
-BEGIN
-    -- Verifique se o tripulante recém-inserido possui a função "comando"
-    IF NEW.funcao = 'comando' THEN
-        -- Atualize o id_comandante na tabela embarcacao com o id_tripulante do tripulante recém-inserido
-        UPDATE embarcacao
-        SET id_comandante = NEW.id_tripulante
-        WHERE id_embarcacao = NEW.id_embarcacao;
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER atualizar_id_comandante_trigger
-AFTER INSERT ON tripulante
-FOR EACH ROW
-EXECUTE FUNCTION atualizar_id_comandante();
+CREATE TYPE tipo_carga_enum AS ENUM ('propria','terceiros')
+CREATE TYPE estado_embarcacao_enum AS ENUM ('atracado', 'ancorado', 'em trânsito', 'na fila de espera', 'sob carga', 'sob descarga', 'em quarentena', 'em reparo ou manutenção')
 
 CREATE TABLE embarcacao (
 	id_embarcacao SERIAL PRIMARY KEY,
-	id_empresa CHAR(50) NOT NULL, -- não conheço as especificações do ID de empresa
+	id_empresa CHAR(50) NOT NULL, -- por não conhecer as especificações de id_empresa, declararemos com o tipo CHAR 
 	id_comandante INTEGER NOT NULL,
-	id_companhia CHAR(50), -- não conheço as especificações do ID de companhia
+	id_companhia CHAR(50), -- por não conhecer as especificações de id_companhia, declararemos com o tipo CHAR
 	num_IMO CHAR(11) UNIQUE NOT NULL, -- o número imo é descrito nas embarcações da seguinte maneira "IMO numero_de_sete_digitos"
 	info_carga tipo_carga_enum,
 	nome VARCHAR(255) NOT NULL,
 	tipo tipo_embarcacao_enum NOT NULL,
-	estado_embarcacao estado_embaRcacao_enum NOT NULL,
+	estado_embarcacao estado_embarcacao_enum NOT NULL,
 	bandeira VARCHAR(50) NOT NULL,
 	localização VARCHAR(25) NOT NULL
+)
+
+CREATE TABLE tamanho_embarcacao (
+	id_tamanho SERIAL PRIMARY KEY,
+	id_embarcacao SERIAL UNIQUE NOT NULL,
+	largura REAL,
+	comprimento REAL,
+	calado REAL,
+	tonelagem REAL,
+	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao)
+	ON DELETE CASCADE
+)
+
+CREATE TABLE tripulante (
+	id_tripulante SERIAL PRIMARY KEY,
+	id_embarcacao INTEGER,
+	nome VARCHAR(255) NOT NULL,
+	nacionalidade VARCHAR(50) NOT NULL,
+	genero genero_enum NOT NULL,
+	idade INTEGER NOT NULL,
+	CPF CHAR(11) UNIQUE NOT NULL,
+	funcao funcao_tripulante_enum NOT NULL,
+	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao)
+	ON DELETE CASCADE
 )
 
 CREATE TABLE empregado (
@@ -69,18 +57,6 @@ CREATE TABLE empregado (
 	data_nasc DATE NOT NULL,
 	CPF CHAR(11) UNIQUE NOT NULL,
 	funcao funcao_empregado_enum NOT NULL
-)
-
-CREATE TABLE tripulante (
-	id_tripulante SERIAL PRIMARY KEY,
-	nome VARCHAR(255) NOT NULL,
-	nacionalidade VARCHAR(50) NOT NULL,
-	genero genero_enum NOT NULL,
-	idade INTEGER NOT NULL,
-	CPF CHAR(11) UNIQUE NOT NULL,
-	funcao funcao_tripulante_enum NOT NULL
-	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao)
-	ON DELETE CASCADE
 )
 
 CREATE TABLE recursos_portuarios (
@@ -99,14 +75,6 @@ CREATE TABLE movimentacao (
 	data_movimentacao DATE NOT NULL
 )
 
-CREATE TABLE alocado_movimentacao_empregado (
-	id_movimentacao INTEGER,
-	id_empregado INTEGER,
-	PRIMARY KEY (id_movimentacao, id_empregado),
-	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao),
-	FOREIGN KEY (id_empregado) REFERENCES empregado (id_empregado)
-)
-
 CREATE TABLE berco_de_atracacao (
 	id_berco CHAR(2) PRIMARY KEY,
 	estado_berco estado_berco_enum NOT NULL
@@ -120,4 +88,37 @@ CREATE TABLE bill_of_landing (
 	FOREIGN KEY (berco_id) REFERENCES berco_de_atracacao(id_berco)
 	ON DELETE CASCADE
 )
+
+CREATE TABLE tripulante_comanda_embarcacao (
+	id_embarcacao INTEGER UNIQUE NOT NULL,
+	id_tripulante INTEGER UNIQUE NOT NULL, -- aqui a aplicação ficará encarregada de verificar se o tripulante possui como função "comando"
+	PRIMARY KEY (id_embarcacao, id_tripulante),
+	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao),
+	FOREIGN KEY (id_tripulante) REFERENCES embarcacao (id_tripulante)
+)
+
+CREATE TABLE embarcacao_atraca_berco (
+	id_embarcacao INTEGER UNIQUE NOT NULL,
+	id_berco CHAR(2) UNIQUE NOT NULL,
+	PRIMARY KEY (id_embarcacao, id_berco),
+	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao),
+	FOREIGN KEY (id_berco) REFERENCES berco_de_atracacao (id_berco)
+)
+
+CREATE TABLE movimentacao_envolve_embarcacao (
+	id_embarcacao INTEGER UNIQUE NOT NULL,
+	id_movimentacao INTEGER UNIQUE NOT NULL,
+	PRIMARY KEY (id_embarcacao, id_movimentacao),
+	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao),
+	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao)
+)
+
+CREATE TABLE empregado_alocado_movimentacao (
+	id_movimentacao INTEGER,
+	id_empregado INTEGER,
+	PRIMARY KEY (id_movimentacao, id_empregado),
+	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao),
+	FOREIGN KEY (id_empregado) REFERENCES empregado (id_empregado)
+)
+
 

@@ -26,17 +26,17 @@ CREATE TABLE embarcacao (
 CREATE TABLE tamanho_embarcacao (
 	id_tamanho SERIAL PRIMARY KEY,
 	id_embarcacao SERIAL UNIQUE NOT NULL,
-	largura REAL,
-	comprimento REAL,
-	calado REAL,
-	tonelagem REAL,
+	largura REAL NOT NULL,
+	comprimento REAL NOT NULL,
+	calado REAL NOT NULL,
+	tonelagem REAL NOT NULL,
 	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao)
 	ON DELETE CASCADE
 )
 
 CREATE TABLE tripulante (
 	id_tripulante SERIAL PRIMARY KEY,
-	id_embarcacao INTEGER,
+	id_embarcacao INTEGER NOT NULL,
 	nome VARCHAR(255) NOT NULL,
 	nacionalidade VARCHAR(50) NOT NULL,
 	genero genero_enum NOT NULL,

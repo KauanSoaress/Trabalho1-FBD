@@ -51,7 +51,7 @@ CREATE TABLE empregado (
 	id_empregado SERIAL PRIMARY KEY,
 	nome VARCHAR(255) NOT NULL,
 	nacionalidade VARCHAR(50) NOT NULL,
-	telefone INTEGER UNIQUE NOT NULL,
+	telefone CHAR(11) UNIQUE NOT NULL,
 	genero genero_enum NOT NULL,
 	email VARCHAR(30) UNIQUE NOT NULL,
 	data_nasc DATE NOT NULL,

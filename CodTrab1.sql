@@ -6,7 +6,7 @@ CREATE TYPE tipo_recursos_portuarios_enum AS ENUM ('conteiner comum', 'conteiner
 CREATE TYPE estado_recursos_enum AS ENUM ('em uso', 'em manutencao', 'nao disponivel', 'livre');
 CREATE TYPE funcao_empregado_enum AS ENUM ('diretor', 'seguranca', 'operador de guindaste', 'operador de carga', 'estivador', 'conferente de carga', 'controlador de trafego', 'pratico', 'oficial de alfandega', 'agente de atendimento', 'RH', 'manutencao', 'outros');
 CREATE TYPE tipo_movimentacao_enum AS ENUM ('carga', 'descarga', 'manutencao', 'estocagem', 'abastecimento de combustivel', 'transferencia de carga', 'outro');
-CREATE TYPE tipo_carga_enum AS ENUM ('propria','terceiros')
+CREATE TYPE tipo_carga_enum AS ENUM ('propria','terceiros');
 CREATE TYPE estado_embarcacao_enum AS ENUM ('atracado', 'ancorado', 'em trânsito', 'na fila de espera', 'sob carga', 'sob descarga', 'em quarentena', 'em reparo ou manutenção')
 
 CREATE TABLE embarcacao (
@@ -59,6 +59,13 @@ CREATE TABLE empregado (
 	funcao funcao_empregado_enum NOT NULL
 )
 
+CREATE TABLE movimentacao (
+	id_movimentacao SERIAL PRIMARY KEY,
+	cod_equipe INTEGER NOT NULL,
+	tipo tipo_movimentacao_enum NOT NULL,
+	data_movimentacao DATE NOT NULL
+)
+
 CREATE TABLE recursos_portuarios (
 	id_recursos SERIAL PRIMARY KEY,
 	nome VARCHAR(255) NOT NULL,
@@ -66,13 +73,6 @@ CREATE TABLE recursos_portuarios (
 	estado estado_recursos_enum NOT NULL,
 	id_movimentacao INTEGER NOT NULL,
 	FOREIGN KEY (id_movimentacao) REFERENCES movimentacao (id_movimentacao)
-)
-
-CREATE TABLE movimentacao (
-	id_movimentacao SERIAL PRIMARY KEY,
-	cod_equipe INTEGER NOT NULL,
-	tipo tipo_movimentacao_enum NOT NULL,
-	data_movimentacao DATE NOT NULL
 )
 
 CREATE TABLE berco_de_atracacao (
@@ -94,7 +94,7 @@ CREATE TABLE tripulante_comanda_embarcacao (
 	id_tripulante INTEGER UNIQUE NOT NULL, -- aqui a aplicação ficará encarregada de verificar se o tripulante possui como função "comando"
 	PRIMARY KEY (id_embarcacao, id_tripulante),
 	FOREIGN KEY (id_embarcacao) REFERENCES embarcacao (id_embarcacao),
-	FOREIGN KEY (id_tripulante) REFERENCES embarcacao (id_tripulante)
+	FOREIGN KEY (id_tripulante) REFERENCES tripulante (id_tripulante)
 )
 
 CREATE TABLE embarcacao_atraca_berco (

@@ -15,7 +15,7 @@ CREATE TABLE embarcacao (
 	id_comandante INTEGER NOT NULL,
 	id_companhia CHAR(50), -- por não conhecer as especificações de id_companhia, declararemos com o tipo CHAR
 	num_IMO CHAR(11) UNIQUE NOT NULL, -- o número imo é descrito nas embarcações da seguinte maneira "IMO numero_de_sete_digitos"
-	info_carga tipo_carga_enum,
+	info_carga tipo_carga_enum NOT NULL,
 	nome VARCHAR(255) NOT NULL,
 	tipo tipo_embarcacao_enum NOT NULL,
 	estado_embarcacao estado_embarcacao_enum NOT NULL,
@@ -25,7 +25,7 @@ CREATE TABLE embarcacao (
 
 CREATE TABLE tamanho_embarcacao (
 	id_tamanho SERIAL PRIMARY KEY,
-	id_embarcacao SERIAL UNIQUE NOT NULL,
+	id_embarcacao INTEGER UNIQUE NOT NULL,
 	largura REAL NOT NULL,
 	comprimento REAL NOT NULL,
 	calado REAL NOT NULL,
